@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.haroncode.lazycardstack.swiper.SwipeDirection
 import com.haroncode.lazycardstack.swiper.swiper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Deprecated("Use LazyCardStack without ThresholdConfig, due to it deprecated")
@@ -58,13 +59,46 @@ public fun LazyCardStack(
                 directions = directions,
                 onSwiped = { direction ->
                     val currentIndex = state.visibleItemIndex
-                    scope.launch {
-                        state.snapTo(currentIndex + 1)
-                        onSwipedItem(currentIndex, direction)
+
+                    when (direction) {
+                        SwipeDirection.Left,
+                        SwipeDirection.Up,
+                        SwipeDirection.Down -> onNextItem(scope, state, currentIndex)
+                        SwipeDirection.Right -> onReturnPreviousItem(scope, state, currentIndex)
                     }
+
+                    onSwipedItem(currentIndex, direction)
                 }
             )
             .then(modifier),
         measurePolicy = measurePolicy
     )
+}
+
+/**
+ * Snaps the visible card to the next item in the stack.
+ *
+ * @param scope The coroutine scope used for asynchronous operations.
+ * @param state The state of the lazy stack.
+ * @param currentIndex The index of the currently visible item.
+ */
+public fun onNextItem(scope: CoroutineScope, state: LazyCardStackState, currentIndex: Int) {
+    scope.launch {
+        state.snapTo(currentIndex + 1)
+    }
+}
+
+/**
+ * Snaps the visible card to the previous item in the stack.
+
+ * @param scope The coroutine scope used for asynchronous operations.
+ * @param state The state of the lazy stack.
+ * @param currentIndex The index of the currently visible item.
+ */
+public fun onReturnPreviousItem(scope: CoroutineScope, state: LazyCardStackState, currentIndex: Int) {
+    scope.launch {
+        // Ensure currentIndex is within the valid range
+        val newIndex = maxOf(currentIndex - 1, 0)
+        state.snapTo(newIndex)
+    }
 }
